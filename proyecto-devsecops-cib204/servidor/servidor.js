@@ -78,9 +78,10 @@ app.get('/buscar', (req, res) => {
   });
 });
 
-// [VULN-9] Uso de eval() sobre entrada del usuario: inyeccion de codigo.
-//   Lo detectan Semgrep y CodeQL (js/code-injection).
-//   CWE-95 (Eval Injection)
+const nums = Array.isArray(req.body.numeros) ? req.body.numeros : [];
+if (!nums.every(n => typeof n === 'number'))
+  return res.status(400).json({ error: 'Entrada invalida' });
+res.json({ resultado: nums.reduce((a,b)=>a+b,0) });
 app.post('/calcular', (req, res) => {
   const expresion = req.body.expresion || '0';
   try {
@@ -97,10 +98,12 @@ app.post('/calcular', (req, res) => {
 //   CWE-78 (OS Command Injection)
 app.get('/diagnostico', (req, res) => {
   const host = req.query.host || '127.0.0.1';
-  exec('ping -c 1 ' + host, (err, stdout, stderr) => {
-    res.json({ salida: stdout, error: stderr });
+ const { execFile } = require('child_process');
+if (!/^[a-zA-Z0-9.-]{1,64}$/.test(host))
+  return res.status(400).json({ error: 'Host invalido' });
+execFile('ping', ['-c','1',host], (e,out)=>res.json({salida:out}));
   });
-});
+
 
 if (require.main === module) {
   app.listen(config.PUERTO, () => {
