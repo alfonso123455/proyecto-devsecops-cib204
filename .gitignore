@@ -7,4 +7,3 @@ node_modules/
 .env
 *.pem
 clave_privada*.pem
-node_modules/
