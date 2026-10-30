@@ -6,8 +6,9 @@
 //  Middleware que deberia exigir un token JWT valido emitido por Keycloak.
 //  En esta version esta debilitado a proposito.
 
-const jwt = require('jsonwebtoken');
-const config = require('./config');
+const { expressjwt } = require('express-jwt');
+const jwksRsa = require('jwks-rsa');
+// valida el token contra el JWKS de Keycloak, algorithms: ['RS256']
 
 // [VULN-4] Verificacion de JWT insegura.
 //   - No se valida la firma con la llave publica de Keycloak.
