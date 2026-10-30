@@ -15,7 +15,7 @@
 
 const express = require('express');
 const cors = require('cors');
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 const cifrado = require('./cifrado');
 const db = require('./db');
 const config = require('./config');
@@ -27,7 +27,9 @@ app.use(express.json());
 // [VULN-5] CORS totalmente abierto: cualquier origen puede consumir la API.
 //   Lo reporta OWASP ZAP (DAST) y Semgrep. La solucion es restringir a los
 //   origenes de confianza.  CWE-942 (Overly Permissive CORS)
-app.use(cors());
+const helmet = require('helmet');
+app.use(helmet());
+app.use(cors({ origin: config.ORIGEN_PERMITIDO }));
 
 // [VULN-6] Faltan cabeceras de seguridad (no se usa Helmet):
 //   sin Content-Security-Policy, X-Content-Type-Options, etc.
@@ -82,23 +84,59 @@ app.get('/buscar', (req, res) => {
 //   Lo detectan Semgrep y CodeQL (js/code-injection).
 //   CWE-95 (Eval Injection)
 app.post('/calcular', (req, res) => {
-  const expresion = req.body.expresion || '0';
   try {
-    const resultado = eval(expresion);
-    res.json({ resultado });
+    const nums = Array.isArray(req.body.numeros)
+      ? req.body.numeros
+      : [];
+
+    if (
+      nums.length === 0 ||
+      !nums.every(n => typeof n === 'number' && Number.isFinite(n))
+    ) {
+      return res.status(400).json({
+        error: 'Debe proporcionar una lista válida de números'
+      });
+    }
+
+    const resultado = nums.reduce((a, b) => a + b, 0);
+
+    return res.json({ resultado });
   } catch (e) {
-    res.status(400).json({ error: 'Expresion invalida' });
+    return res.status(400).json({
+      error: 'Entrada inválida'
+    });
   }
 });
-
 // [VULN-10] Inyeccion de comandos del sistema operativo.
 //   El parametro 'host' entra sin sanitizar a exec(). Un atacante puede enviar
 //   "8.8.8.8; cat /etc/passwd". Lo detectan CodeQL y Semgrep.
 //   CWE-78 (OS Command Injection)
+// Endpoint seguro: evita la inyección de comandos del sistema.
 app.get('/diagnostico', (req, res) => {
   const host = req.query.host || '127.0.0.1';
-  exec('ping -c 1 ' + host, (err, stdout, stderr) => {
-    res.json({ salida: stdout, error: stderr });
+
+  // Validación estricta: solo permite direcciones IPv4.
+  const ipv4Regex = /^(?:\d{1,3}\.){3}\d{1,3}$/;
+
+  if (!ipv4Regex.test(host)) {
+    return res.status(400).json({
+      error: 'Dirección IP inválida'
+    });
+  }
+
+  const octetos = host.split('.').map(Number);
+
+  if (octetos.some(octeto => octeto < 0 || octeto > 255)) {
+    return res.status(400).json({
+      error: 'Dirección IP inválida'
+    });
+  }
+
+  execFile('ping', ['-c', '1', host], (err, stdout, stderr) => {
+    return res.json({
+      salida: stdout,
+      error: err ? stderr || err.message : null
+    });
   });
 });
 

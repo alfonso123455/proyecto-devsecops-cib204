@@ -11,30 +11,49 @@
 //  falla, la consulta se atrapa y el servicio sigue vivo; lo importante para
 //  el laboratorio es que SAST/CodeQL detecten la INYECCION SQL en el codigo.
 
+
+// ============================================================================
+// db.js - Acceso a datos (bitacora de operaciones)
+// VERSION CORREGIDA
+// ============================================================================
+
 const mysql = require('mysql');
 const config = require('./config');
 
 let conexion = null;
+
 try {
   conexion = mysql.createConnection(config.DATABASE_URL);
 } catch (e) {
   conexion = null;
 }
 
-// [VULN-3] Inyeccion de SQL por concatenacion directa de entrada del usuario.
-//   El parametro 'nombre' viaja SIN sanitizar dentro de la consulta.
-//   Un atacante puede enviar:  ' OR '1'='1  y alterar la logica.
-//   Lo detectan CodeQL (js/sql-injection) y Semgrep.
-//   La solucion son consultas parametrizadas (placeholders '?').
-//   CWE-89 (SQL Injection)
+// [FIX VULN-3] Consulta parametrizada para prevenir SQL Injection.
+// CWE-89: SQL Injection
+
 function buscarBitacora(nombre, callback) {
-const sql = 'SELECT * FROM bitacora WHERE usuario = ?';
-conexion.query(sql, [nombre], (err, filas) => callback(null, { filas }));
+  const sql = 'SELECT * FROM bitacora WHERE usuario = ?';
+  const parametros = [nombre];
+
+  if (!conexion) {
+    return callback(null, {
+      sqlEjecutado: sql,
+      filas: []
+    });
+  }
+
+  conexion.query(sql, parametros, function (err, filas) {
     if (err) {
-      return callback(null, { sqlEjecutado: sql, filas: [], nota: err.code });
+      return callback(null, {
+        sqlEjecutado: sql,
+        filas: [],
+        nota: err.code
+      });
     }
-    return callback(null, { sqlEjecutado: sql, filas: filas });
-  };
 
-
-module.exports = { buscarBitacora };
+    return callback(null, {
+      sqlEjecutado: sql,
+      filas: filas
+    });
+  });
+}

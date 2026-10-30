@@ -22,6 +22,7 @@ const config = require('./config');
 const { requiereAuth } = require('./auth');
 
 const app = express();
+const helmet = require('helmet');
 app.use(express.json());
 
 // [VULN-5] CORS totalmente abierto: cualquier origen puede consumir la API.
