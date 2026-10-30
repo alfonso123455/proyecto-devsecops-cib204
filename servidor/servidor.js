@@ -85,18 +85,10 @@ app.get('/buscar', (req, res) => {
 //   CWE-95 (Eval Injection)
 app.post('/calcular', (req, res) => {
   try {
-    const nums = Array.isArray(req.body.numeros)
-      ? req.body.numeros
-      : [];
-
-    if (
-      nums.length === 0 ||
-      !nums.every(n => typeof n === 'number' && Number.isFinite(n))
-    ) {
-      return res.status(400).json({
-        error: 'Debe proporcionar una lista válida de números'
-      });
-    }
+const nums = Array.isArray(req.body.numeros) ? req.body.numeros : [];
+if (!nums.every(n => typeof n === 'number'))
+  return res.status(400).json({ error: 'Entrada inválida' });
+res.json({ resultado: nums.reduce((a, b) => a + b, 0) });
 
     const resultado = nums.reduce((a, b) => a + b, 0);
 
