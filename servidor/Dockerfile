@@ -10,4 +10,5 @@ COPY --from=build /app /app
 RUN chown -R appuser:appuser /app
 USER appuser
 EXPOSE 3000
+
 CMD ["node","servidor.js"]
