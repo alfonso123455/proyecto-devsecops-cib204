@@ -120,24 +120,23 @@ app.post('/calcular', (req, res) => {
 //   CWE-78 (OS Command Injection)
 // Endpoint seguro: evita la inyección de comandos del sistema.
 app.get('/diagnostico', (req, res) => {
-  const host = req.query.host || '127.0.0.1';
+  const host = req.query.host ?? '127.0.0.1';
 
-  // Validación estricta: solo permite direcciones IPv4.
-  const ipv4Regex = /^(?:\d{1,3}\.){3}\d{1,3}$/;
+if (typeof host !== 'string') {
+  return res.status(400).json({ error: 'Dirección IP inválida' });
+}
 
-  if (!ipv4Regex.test(host)) {
-    return res.status(400).json({
-      error: 'Dirección IP inválida'
-    });
-  }
+const ipv4Regex = /^(?:\d{1,3}\.){3}\d{1,3}$/;
 
-  const octetos = host.split('.').map(Number);
+if (!ipv4Regex.test(host)) {
+  return res.status(400).json({ error: 'Dirección IP inválida' });
+}
 
-  if (octetos.some(octeto => octeto < 0 || octeto > 255)) {
-    return res.status(400).json({
-      error: 'Dirección IP inválida'
-    });
-  }
+const octetos = host.split('.').map(Number);
+
+if (octetos.some(octeto => octeto < 0 || octeto > 255)) {
+  return res.status(400).json({ error: 'Dirección IP inválida' });
+}
 
   execFile('ping', ['-c', '1', host], (err, stdout, stderr) => {
     return res.json({
