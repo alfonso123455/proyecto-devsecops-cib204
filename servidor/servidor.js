@@ -48,27 +48,40 @@ app.get('/llave', (req, res) => {
 });
 
 app.post('/cifrar', requiereAuth, (req, res) => {
+  const texto = req.body?.texto;
+
+  if (typeof texto !== 'string' || texto.trim().length === 0) {
+    return res.status(400).json({ error: 'Texto inválido' });
+  }
+
+  if (Buffer.byteLength(texto, 'utf8') > 1000) {
+    return res.status(400).json({ error: 'Texto demasiado grande' });
+  }
+
   try {
-    // [VULN-7] Sin validacion de entrada: no se controla tipo ni tamano.
-    //   Un cuerpo enorme o de tipo inesperado puede tumbar el servicio.
-    //   CWE-20 (Improper Input Validation)
-    const texto = req.body.texto;
     const resultado = cifrado.cifrar(texto, llaves.publicKey);
-    res.json({ cifrado: resultado });
+    return res.json({ cifrado: resultado });
   } catch (e) {
-    // [VULN-8] Exposicion de detalles internos: se devuelve el stack al cliente.
-    //   CWE-209 (Information Exposure Through an Error Message)
-    res.status(500).json({ error: e.message, stack: e.stack });
+    return res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
 app.post('/descifrar', requiereAuth, (req, res) => {
+  const cifradoTxt = req.body?.cifrado;
+
+  if (typeof cifradoTxt !== 'string' || cifradoTxt.trim().length === 0) {
+    return res.status(400).json({ error: 'Cifrado inválido' });
+  }
+
+  if (cifradoTxt.length > 10000) {
+    return res.status(400).json({ error: 'Cifrado demasiado grande' });
+  }
+
   try {
-    const cifradoTxt = req.body.cifrado;
     const resultado = cifrado.descifrar(cifradoTxt, llaves.privateKey);
-    res.json({ descifrado: resultado });
+    return res.json({ descifrado: resultado });
   } catch (e) {
-    res.status(500).json({ error: e.message, stack: e.stack });
+    return res.status(400).json({ error: 'No se pudo descifrar el contenido' });
   }
 });
 
