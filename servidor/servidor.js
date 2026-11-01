@@ -86,10 +86,17 @@ app.post('/descifrar', requiereAuth, (req, res) => {
 });
 
 // Demostracion de INYECCION SQL (CWE-89).
-app.get('/buscar', (req, res) => {
+app.get('/buscar', requiereAuth, (req, res) => {
   const nombre = req.query.nombre || '';
+
   db.buscarBitacora(nombre, (err, data) => {
-    res.json(data);
+    if (err) {
+      return res.status(500).json({
+        error: 'Error interno del servidor'
+      });
+    }
+
+    return res.json(data);
   });
 });
 
