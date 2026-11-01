@@ -24,7 +24,7 @@ DATABASE_URL: process.env.DATABASE_URL,
   // Parametros de Keycloak (IAM)
   KEYCLOAK_URL: process.env.KEYCLOAK_URL || 'http://localhost:8080',
   KEYCLOAK_REALM: process.env.KEYCLOAK_REALM || 'appmovil',
-
+  ORIGEN_PERMITIDO: process.env.ORIGEN_PERMITIDO || 'http://localhost:5173',
   PUERTO: process.env.PORT || 3000,
 };
 
